@@ -1,6 +1,7 @@
 package prices
 
 import (
+	"errors"
 	"fmt"
 
 	"frcofilippi.com/price-tax-calculator/conversions"
@@ -21,12 +22,12 @@ func NewTaxPriceIncludedJob(taxRate float64, ioManager iomanager.IOManager) *Tax
 	}
 }
 
-func (job TaxIncludedPriceJob) Process() error {
+func (job TaxIncludedPriceJob) Process(doneChan chan bool, errChan chan error) {
 
 	err := job.loadPrices()
 
 	if err != nil {
-		return err
+		errChan <- errors.New("error loading prices")
 	}
 
 	result := make(map[string]string)
@@ -37,8 +38,12 @@ func (job TaxIncludedPriceJob) Process() error {
 
 	job.TaxIncludedPrices = result
 
-	return job.saveData()
+	err = job.saveData()
+	if err != nil {
+		errChan <- errors.New("error loading prices")
+	}
 
+	doneChan <- true
 }
 
 func (job TaxIncludedPriceJob) saveData() error {
